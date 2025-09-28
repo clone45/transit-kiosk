@@ -6,7 +6,7 @@ import KioskButton from '../components/KioskButton.vue'
 const router = useRouter()
 
 const handleHistory = () => {
-  console.log('History clicked')
+  router.push('/history')
 }
 
 const handlePurchaseCard = () => {

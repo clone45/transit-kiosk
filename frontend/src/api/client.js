@@ -78,6 +78,29 @@ export const api = {
     });
     return response.data;
   },
+
+  async getCardTrips(cardId) {
+    const response = await apiClient.get(`/cards/${cardId}/trips`);
+    return response.data;
+  },
+
+  async getStationById(stationId) {
+    const response = await apiClient.get(`/stations/${stationId}`);
+    return response.data;
+  },
+
+  async getActiveTrip(cardId) {
+    const response = await apiClient.get(`/cards/${cardId}/active-trip`);
+    return response.data;
+  },
+
+  async completeTrip(tripId, destinationStationId, finalCost) {
+    const response = await apiClient.post(`/trips/${tripId}/complete`, {
+      destination_station_id: destinationStationId,
+      final_cost: finalCost
+    });
+    return response.data;
+  },
 };
 
 export default apiClient;

@@ -8,6 +8,7 @@ import { purchaseCardStore } from '../stores/purchaseCardStore'
 import { addFareStore } from '../stores/addFareStore'
 import { fareStore } from '../stores/fareStore'
 import { navigationStore } from '../stores/navigationStore'
+import { historyStore } from '../stores/historyStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -95,6 +96,30 @@ const updateBalance = () => {
 }
 
 const handleScannerClick = async () => {
+  if (route.name === 'history') {
+    const cardData = testConfig.scanCard()
+    if (!cardData) {
+      scannerState.value = 'error'
+      errorMessage.value = 'No test card configured'
+      isInsufficientBalanceError.value = false
+      errorTimeout = setTimeout(() => {
+        clearError()
+      }, 5000)
+      return
+    }
+
+    scannerState.value = 'success'
+    historyStore.setScannedCard({
+      uuid: cardData.uuid,
+      balance: cardData.balance
+    })
+
+    setTimeout(() => {
+      router.push('/history/view')
+    }, 500)
+    return
+  }
+
   if (route.name === 'add-fare') {
     const cardData = testConfig.scanCard()
     if (!cardData) {
@@ -250,6 +275,23 @@ const handleScannerClick = async () => {
     const newBalance = cardData.balance - fare
     testConfig.writeCardBalance(cardData.uuid, newBalance)
     testConfig.clearCardTrip(cardData.uuid)
+
+    // Complete the trip in the database asynchronously
+    api.getCardByUuid(cardData.uuid).then(card => {
+      if (card) {
+        api.getActiveTrip(card.id).then(activeTrip => {
+          if (activeTrip) {
+            api.completeTrip(activeTrip.id, exitStationId, fare).catch(error => {
+              console.error('Failed to complete trip in DB:', error)
+            })
+          }
+        }).catch(error => {
+          console.error('Failed to get active trip:', error)
+        })
+      }
+    }).catch(error => {
+      console.error('Failed to get card from DB:', error)
+    })
 
     router.push('/exit')
     return

@@ -4,6 +4,8 @@ import EnterView from '../views/EnterView.vue'
 import ExitView from '../views/ExitView.vue'
 import ExitSuccessView from '../views/ExitSuccessView.vue'
 import MenuView from '../views/MenuView.vue'
+import HistoryView from '../views/HistoryView.vue'
+import HistoryScanCardView from '../views/HistoryScanCardView.vue'
 import PurchaseCardSelectAmountView from '../views/PurchaseCardSelectAmountView.vue'
 import PurchaseCardPaymentView from '../views/PurchaseCardPaymentView.vue'
 import PurchaseCardDispensingView from '../views/PurchaseCardDispensingView.vue'
@@ -37,6 +39,16 @@ const routes = [
     path: '/menu',
     name: 'menu',
     component: MenuView
+  },
+  {
+    path: '/history',
+    name: 'history',
+    component: HistoryScanCardView
+  },
+  {
+    path: '/history/view',
+    name: 'history-view',
+    component: HistoryView
   },
   {
     path: '/purchase-card',
