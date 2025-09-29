@@ -1,5 +1,5 @@
-import { transitConfig } from '../config/transitConfig'
 import { api } from '../api/client'
+import transitConfigData from '../config/transitConfig.json'
 
 class ConfigManager {
   constructor() {
@@ -45,9 +45,9 @@ class ConfigManager {
   loadStaticConfig() {
     // Load the static config as fallback
     this.config = {
-      stations: transitConfig.stations,
-      pricing: transitConfig.pricing,
-      minimumFare: transitConfig.minimumFare
+      stations: transitConfigData.stations,
+      pricing: transitConfigData.pricing,
+      minimumFare: transitConfigData.minimumFare
     }
     console.log('[ConfigManager] Loaded static config:', {
       stations: this.config.stations.length,
@@ -66,12 +66,12 @@ class ConfigManager {
 
   getStations() {
     this.ensureConfig()
-    return this.config?.stations || transitConfig.stations
+    return this.config?.stations || transitConfigData.stations
   }
 
   getPricing(stationA, stationB) {
     this.ensureConfig()
-    const pricing = this.config?.pricing || transitConfig.pricing
+    const pricing = this.config?.pricing || transitConfigData.pricing
 
     const found = pricing.find(p =>
       (p.stationA === stationA && p.stationB === stationB) ||
@@ -85,7 +85,7 @@ class ConfigManager {
 
   getMinimumFare() {
     this.ensureConfig()
-    return this.config?.minimumFare || transitConfig.minimumFare || 2.25
+    return this.config?.minimumFare || transitConfigData.minimumFare || 2.25
   }
 
   startedInOfflineMode() {

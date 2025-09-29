@@ -1,11 +1,12 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { CreditCardIcon, XMarkIcon, ArrowRightOnRectangleIcon, ArrowLeftOnRectangleIcon } from '@heroicons/vue/24/outline'
 import { testConfig } from '../config/testConfig'
 import { addFareStore } from '../stores/addFareStore'
 import { navigationStore } from '../stores/navigationStore'
 import { scannerService } from '../services/scannerService'
+import { configManager } from '../services/configManager'
 
 const router = useRouter()
 const route = useRoute()
@@ -17,6 +18,9 @@ const debugCardData = ref(null)
 const debugTripData = ref(null)
 const newBalance = ref(0)
 const lastScannedCard = ref(null)
+const stations = ref([])
+const selectedEntryStation = ref(parseInt(import.meta.env.VITE_ENTRY_STATION_ID) || 1)
+const selectedExitStation = ref(parseInt(import.meta.env.VITE_EXIT_STATION_ID) || 2)
 
 const borderColors = {
   idle: 'border-kiosk-blue',
@@ -92,12 +96,34 @@ const updateBalance = () => {
   }
 }
 
+// Load stations when component mounts
+onMounted(async () => {
+  try {
+    stations.value = configManager.getStations()
+  } catch (error) {
+    console.error('Failed to load stations:', error)
+    // Fallback to static config if needed
+    stations.value = [
+      { id: 1, name: "Central Station" },
+      { id: 2, name: "Union Square" },
+      { id: 3, name: "Airport Terminal" },
+      { id: 4, name: "Downtown" },
+      { id: 5, name: "University" },
+      { id: 6, name: "Stadium" },
+      { id: 7, name: "Harbor Point" },
+      { id: 8, name: "Tech Center" }
+    ]
+  }
+})
+
 const handleScannerClick = async () => {
-  // Call the scanner service with context
+  // Call the scanner service with context including selected stations
   const result = await scannerService.handleScan({
     routeName: route.name,
     router,
-    route
+    route,
+    entryStationId: selectedEntryStation.value,
+    exitStationId: selectedExitStation.value
   })
 
   // Apply the result to the UI state
@@ -198,6 +224,38 @@ const handleScannerClick = async () => {
             >
               Update
             </button>
+          </div>
+        </div>
+
+        <div id="station-config-section" class="pt-4 border-t border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Station Configuration</h3>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm text-gray-400 mb-1">Entry Station</label>
+              <select
+                id="entry-station-select"
+                v-model="selectedEntryStation"
+                class="w-full px-3 py-2 bg-gray-800 text-white rounded border border-gray-600 focus:outline-none focus:border-blue-500"
+              >
+                <option v-for="station in stations" :key="station.id" :value="station.id">
+                  {{ station.id }} - {{ station.name }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-400 mb-1">Exit Station</label>
+              <select
+                id="exit-station-select"
+                v-model="selectedExitStation"
+                class="w-full px-3 py-2 bg-gray-800 text-white rounded border border-gray-600 focus:outline-none focus:border-blue-500"
+              >
+                <option v-for="station in stations" :key="station.id" :value="station.id">
+                  {{ station.id }} - {{ station.name }}
+                </option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

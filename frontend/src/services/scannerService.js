@@ -16,7 +16,11 @@ class ScannerService {
    * Routes to appropriate handler based on current route
    */
   async handleScan(context) {
-    const { routeName, router, route } = context
+    const { routeName, router, route, entryStationId, exitStationId } = context
+
+    // Store station overrides for use in handlers
+    this.entryStationId = entryStationId
+    this.exitStationId = exitStationId
 
     // Route to the appropriate handler
     switch (routeName) {
@@ -233,7 +237,7 @@ class ScannerService {
       }
     }
 
-    const exitStationId = parseInt(import.meta.env.VITE_EXIT_STATION_ID)
+    const exitStationId = this.exitStationId || parseInt(import.meta.env.VITE_EXIT_STATION_ID)
 
     if (!exitStationId) {
       return {
@@ -315,7 +319,7 @@ class ScannerService {
       }
     }
 
-    const entryStationId = parseInt(import.meta.env.VITE_ENTRY_STATION_ID)
+    const entryStationId = this.entryStationId || parseInt(import.meta.env.VITE_ENTRY_STATION_ID)
 
     if (!entryStationId) {
       return {

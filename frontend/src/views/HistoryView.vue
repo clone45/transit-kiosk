@@ -81,14 +81,22 @@ async function fetchTrips() {
       })
       .slice(0, 50)
       .map(trip => {
-        // Parse datetime - remove microseconds for JavaScript compatibility
-        const dateString = (trip.completion_time || trip.start_time).replace(/\.\d{6}$/, '')
-        const completedAt = new Date(dateString)
+        // Parse departure time
+        const startDateString = trip.start_time ? trip.start_time.replace(/\.\d{6}$/, '') : null
+        const startTime = startDateString ? new Date(startDateString) : null
+
+        // Parse arrival time
+        const completionDateString = trip.completion_time ? trip.completion_time.replace(/\.\d{6}$/, '') : null
+        const completionTime = completionDateString ? new Date(completionDateString) : null
+
+        // Use completion time for date display, fallback to start time
+        const displayDate = completionTime || startTime
 
         const transformed = {
           id: trip.id,
-          date: completedAt.toLocaleDateString(),
-          time: completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: displayDate ? displayDate.toLocaleDateString() : 'Unknown',
+          departureTime: startTime ? startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown',
+          arrivalTime: completionTime ? completionTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'In Progress',
           from: stations.value[trip.source_station_id] || `Station ${trip.source_station_id}`,
           to: trip.destination_station_id ? (stations.value[trip.destination_station_id] || `Station ${trip.destination_station_id}`) : 'In Progress',
           fare: trip.cost || 0,  // Backend uses 'cost' not 'fare'
@@ -194,7 +202,13 @@ onMounted(() => {
             </div>
           </div>
           <div class="flex justify-between items-center text-lg text-gray-600">
-            <div>{{ trip.date }} at {{ trip.time }}</div>
+            <div class="flex flex-col gap-1">
+              <div>{{ trip.date }}</div>
+              <div class="flex gap-4 text-base">
+                <span>Departed: {{ trip.departureTime }}</span>
+                <span>Arrived: {{ trip.arrivalTime }}</span>
+              </div>
+            </div>
             <div class="text-sm uppercase font-semibold text-gray-500">{{ trip.status }}</div>
           </div>
         </div>
