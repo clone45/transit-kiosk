@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { api } from '../api/client'
+import { offlineApi as api } from '../api/offlineWrapper'
 import { navigationStore } from '../stores/navigationStore'
 import ScanChevrons from '../components/ScanChevrons.vue'
 import KioskButton from '../components/KioskButton.vue'

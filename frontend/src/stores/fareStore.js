@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { api } from '../api/client'
+import { offlineApi as api } from '../api/offlineWrapper'
 
 const minimumFare = ref(null)
 const fareCache = ref({})
@@ -11,6 +11,28 @@ export const fareStore = {
   fareCache,
   loading,
   error,
+
+  // Initialize from config manager (for offline support)
+  initializeFromConfig(configManager) {
+    console.log('[FareStore] Initializing from config manager...')
+
+    // Set minimum fare
+    this.minimumFare.value = configManager.getMinimumFare()
+
+    // Cache all pricing from config
+    const pricing = configManager.config?.pricing || []
+    for (const p of pricing) {
+      const key = p.stationA < p.stationB
+        ? `${p.stationA}-${p.stationB}`
+        : `${p.stationB}-${p.stationA}`
+      this.fareCache.value[key] = p.fare
+    }
+
+    console.log('[FareStore] Initialized with config data:', {
+      minimumFare: this.minimumFare.value,
+      cachedRoutes: Object.keys(this.fareCache.value).length
+    })
+  },
 
   async fetchMinimumFare() {
     if (minimumFare.value !== null) {

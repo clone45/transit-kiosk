@@ -4,6 +4,7 @@ const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
+    'X-API-Key': import.meta.env.VITE_API_KEY || 'tk_SeHGhfRwuq2sKPie7QsoMCiG2da6uhWhQcWnoAXbf9E',
   },
 });
 
@@ -34,7 +35,7 @@ export const api = {
   },
 
   async createTrip(cardUuid, stationId) {
-    const response = await apiClient.post('/trips', {
+    const response = await apiClient.post('/trips/', {
       card_uuid: cardUuid,
       source_station_id: stationId
     });
@@ -63,7 +64,7 @@ export const api = {
     if (uuid) {
       payload.uuid = uuid;
     }
-    const response = await apiClient.post('/cards', payload);
+    const response = await apiClient.post('/cards/', payload);
     return response.data;
   },
 

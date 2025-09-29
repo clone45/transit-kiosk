@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { navigationStore } from '../stores/navigationStore'
-import { api } from '../api/client'
+import { offlineApi as api } from '../api/offlineWrapper'
 import { historyStore } from '../stores/historyStore'
 import KioskButton from '../components/KioskButton.vue'
 

@@ -3,9 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 from routers import cards, stations, trips, transactions, pricing, admin
+from middleware.global_api_key_middleware import GlobalApiKeyMiddleware
 
 app = FastAPI(title="Transit Kiosk API", version="1.0.0")
 
+
+# Add API key authentication middleware (before CORS)
+app.add_middleware(GlobalApiKeyMiddleware, exempted_paths=[
+    "/",
+    "/docs",
+    "/redoc",
+    "/openapi.json"
+])
 
 app.add_middleware(
     CORSMiddleware,

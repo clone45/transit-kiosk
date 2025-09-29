@@ -8,7 +8,7 @@ env/
 venv/
 ENV/
 .env
-*.db
+# *.db   // in this case, we're going to include database files for demo purposes
 *.sqlite
 *.sqlite3
 

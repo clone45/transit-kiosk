@@ -2,13 +2,10 @@
 import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { CreditCardIcon, XMarkIcon, ArrowRightOnRectangleIcon, ArrowLeftOnRectangleIcon } from '@heroicons/vue/24/outline'
-import { api } from '../api/client'
 import { testConfig } from '../config/testConfig'
-import { purchaseCardStore } from '../stores/purchaseCardStore'
 import { addFareStore } from '../stores/addFareStore'
-import { fareStore } from '../stores/fareStore'
 import { navigationStore } from '../stores/navigationStore'
-import { historyStore } from '../stores/historyStore'
+import { scannerService } from '../services/scannerService'
 
 const router = useRouter()
 const route = useRoute()
@@ -96,251 +93,33 @@ const updateBalance = () => {
 }
 
 const handleScannerClick = async () => {
-  if (route.name === 'history') {
-    const cardData = testConfig.scanCard()
-    if (!cardData) {
-      scannerState.value = 'error'
-      errorMessage.value = 'No test card configured'
-      isInsufficientBalanceError.value = false
-      errorTimeout = setTimeout(() => {
-        clearError()
-      }, 5000)
-      return
-    }
-
-    scannerState.value = 'success'
-    historyStore.setScannedCard({
-      uuid: cardData.uuid,
-      balance: cardData.balance
-    })
-
-    setTimeout(() => {
-      router.push('/history/view')
-    }, 500)
-    return
-  }
-
-  if (route.name === 'add-fare') {
-    const cardData = testConfig.scanCard()
-    if (!cardData) {
-      scannerState.value = 'error'
-      errorMessage.value = 'No test card configured'
-      isInsufficientBalanceError.value = false
-      errorTimeout = setTimeout(() => {
-        clearError()
-      }, 5000)
-      return
-    }
-
-    scannerState.value = 'success'
-    addFareStore.setScannedCard({
-      uuid: cardData.uuid,
-      balance: cardData.balance
-    })
-
-    setTimeout(() => {
-      router.push('/add-fare/select-amount')
-    }, 500)
-    return
-  }
-
-  if (route.name === 'add-fare-payment') {
-    const cardUuid = addFareStore.scannedCard.value?.uuid
-    if (!cardUuid) {
-      scannerState.value = 'error'
-      errorMessage.value = 'No card selected'
-      errorTimeout = setTimeout(() => {
-        clearError()
-      }, 5000)
-      return
-    }
-
-    scannerState.value = 'success'
-
-    const currentBalance = addFareStore.scannedCard.value.balance
-    const amountToAdd = addFareStore.selectedAmount.value
-    const newBalance = currentBalance + amountToAdd
-
-    testConfig.writeCardBalance(cardUuid, newBalance)
-
-    addFareStore.setScannedCard({
-      uuid: cardUuid,
-      balance: newBalance
-    })
-
-    api.getCardByUuid(cardUuid).then(card => {
-      api.addFunds(card.id, amountToAdd).catch(error => {
-        console.error('Failed to add funds to DB:', error)
-      })
-    }).catch(error => {
-      console.error('Card not found in DB:', error)
-    })
-
-    setTimeout(() => {
-      router.push('/add-fare/complete')
-    }, 500)
-    return
-  }
-
-  if (route.name === 'add-fare-complete') {
-    addFareStore.reset()
-    router.push('/')
-    return
-  }
-
-  if (route.name === 'purchase-card-payment') {
-    scannerState.value = 'success'
-
-    const initialBalance = purchaseCardStore.selectedAmount.value
-    const newCardUuid = `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
-    testConfig.writeCardBalance(newCardUuid, initialBalance)
-
-    purchaseCardStore.setCreatedCard({
-      uuid: newCardUuid,
-      balance: initialBalance
-    })
-
-    api.createCard(initialBalance, newCardUuid).catch(error => {
-      console.error('Failed to create card in DB:', error)
-    })
-
-    setTimeout(() => {
-      router.push('/purchase-card/dispensing')
-    }, 500)
-    return
-  }
-
-  if (route.name === 'purchase-card-dispensing') {
-    purchaseCardStore.reset()
-    router.push('/')
-    return
-  }
-
-  if (route.name === 'scan-to-exit') {
-    const cardData = testConfig.scanCard()
-    if (!cardData) {
-      scannerState.value = 'error'
-      errorMessage.value = 'No test card configured'
-      isInsufficientBalanceError.value = false
-      errorTimeout = setTimeout(() => {
-        clearError()
-      }, 5000)
-      return
-    }
-
-    const tripData = testConfig.readCardTrip(cardData.uuid)
-    if (!tripData) {
-      scannerState.value = 'success'
-      router.push('/exit')
-      return
-    }
-
-    const exitStationId = parseInt(import.meta.env.VITE_EXIT_STATION_ID)
-    if (!exitStationId) {
-      scannerState.value = 'error'
-      errorMessage.value = 'No exit station ID configured'
-      isInsufficientBalanceError.value = false
-      errorTimeout = setTimeout(() => {
-        clearError()
-      }, 5000)
-      return
-    }
-
-    const fare = await fareStore.fetchFareBetweenStations(tripData.station_id, exitStationId)
-    if (fare === null) {
-      scannerState.value = 'error'
-      errorMessage.value = 'Unable to calculate fare'
-      isInsufficientBalanceError.value = false
-      errorTimeout = setTimeout(() => {
-        clearError()
-      }, 5000)
-      return
-    }
-
-    if (cardData.balance < fare) {
-      lastScannedCard.value = cardData
-      scannerState.value = 'error'
-      const shortfall = (fare - cardData.balance).toFixed(2)
-      errorMessage.value = `Insufficient balance\n\nFare: $${fare.toFixed(2)}\nBalance: $${cardData.balance.toFixed(2)}\nShort: $${shortfall}`
-      isInsufficientBalanceError.value = true
-      errorTimeout = setTimeout(() => {
-        clearError()
-      }, 5000)
-      return
-    }
-
-    scannerState.value = 'success'
-
-    const newBalance = cardData.balance - fare
-    testConfig.writeCardBalance(cardData.uuid, newBalance)
-    testConfig.clearCardTrip(cardData.uuid)
-
-    // Complete the trip in the database asynchronously
-    api.getCardByUuid(cardData.uuid).then(card => {
-      if (card) {
-        api.getActiveTrip(card.id).then(activeTrip => {
-          if (activeTrip) {
-            api.completeTrip(activeTrip.id, exitStationId, fare).catch(error => {
-              console.error('Failed to complete trip in DB:', error)
-            })
-          }
-        }).catch(error => {
-          console.error('Failed to get active trip:', error)
-        })
-      }
-    }).catch(error => {
-      console.error('Failed to get card from DB:', error)
-    })
-
-    router.push('/exit')
-    return
-  }
-
-  const cardData = testConfig.scanCard()
-  if (!cardData) {
-    scannerState.value = 'error'
-    errorMessage.value = 'No test card configured'
-    isInsufficientBalanceError.value = false
-    errorTimeout = setTimeout(() => {
-      clearError()
-    }, 5000)
-    return
-  }
-
-  const entryStationId = parseInt(import.meta.env.VITE_ENTRY_STATION_ID)
-  if (!entryStationId) {
-    scannerState.value = 'error'
-    errorMessage.value = 'No entry station ID configured'
-    isInsufficientBalanceError.value = false
-    errorTimeout = setTimeout(() => {
-      clearError()
-    }, 5000)
-    return
-  }
-
-  const minimumFare = fareStore.getMinimumFare()
-  if (cardData.balance < minimumFare) {
-    lastScannedCard.value = cardData
-    scannerState.value = 'error'
-    errorMessage.value = 'Insufficient balance'
-    isInsufficientBalanceError.value = true
-    errorTimeout = setTimeout(() => {
-      clearError()
-    }, 5000)
-    return
-  }
-
-  scannerState.value = 'success'
-
-  const entryTimestamp = new Date().toISOString()
-  testConfig.writeCardTrip(cardData.uuid, entryStationId, entryTimestamp)
-
-  api.createTrip(cardData.uuid, entryStationId).catch(error => {
-    console.error('Failed to create trip in DB:', error)
+  // Call the scanner service with context
+  const result = await scannerService.handleScan({
+    routeName: route.name,
+    router,
+    route
   })
 
-  router.push('/enter')
+  // Apply the result to the UI state
+  if (result.success) {
+    scannerState.value = result.scannerState || 'success'
+  } else {
+    scannerState.value = result.scannerState || 'error'
+    errorMessage.value = result.errorMessage || 'An error occurred'
+    isInsufficientBalanceError.value = result.isInsufficientBalance || false
+
+    // Store the last scanned card if provided
+    if (result.lastScannedCard) {
+      lastScannedCard.value = result.lastScannedCard
+    }
+
+    // Set error timeout if specified
+    if (result.timeout) {
+      errorTimeout = setTimeout(() => {
+        clearError()
+      }, result.timeout)
+    }
+  }
 }
 </script>
 
