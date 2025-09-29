@@ -200,7 +200,9 @@ Visit http://localhost:8000/docs for API documentation and schema information.
 - `GET /api/pricing/minimum` - Get minimum fare
 
 **Authentication:**
-All API endpoints require an `X-API-Key` header. API keys can be created through the admin interface or directly in the database.
+All API endpoints require an `X-API-Key` header. 
+* For the frontend, the API key is currently set in frontend\.env.example
+* The backend looks up the API key from the database (api_keys table)
 
 **Note for Development/Testing:**
 The API key requirement makes interactive testing through the Swagger UI challenging. In a production system, this would typically be addressed by providing development API keys in documentation or implementing environment-based authentication exemptions for local development.
